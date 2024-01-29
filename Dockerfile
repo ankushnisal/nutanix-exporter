@@ -5,7 +5,7 @@
 
 # Builder image, where we build the example.
 
-FROM golang:1.15 AS builder
+FROM golang:1.21 AS builder
 
 ENV GOPATH /go
 
