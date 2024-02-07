@@ -24,8 +24,8 @@ LABEL description "Prometheus Exporter for Nutanix AHV Cluster" \
 
 WORKDIR /
 COPY --from=builder /nutanix-exporter/nutanix-exporter /usr/local/bin/nutanix-exporter
-RUN touch /config.yml
+RUN mkdir /config && touch /config/config.yml
 
-EXPOSE 9404
+EXPOSE 9405
 ENTRYPOINT ["/usr/local/bin/nutanix-exporter"]
-CMD [ "--nutanix.conf", "/config.yml" ]
+CMD [ "--nutanix.conf", "/config/config.yml" ]

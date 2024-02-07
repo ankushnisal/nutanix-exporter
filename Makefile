@@ -1,10 +1,10 @@
 
 BIN_NAME = nutanix-exporter
 DOCKER_IMAGE_NAME ?= nutanix-exporter
-export GOPATH = ${PWD}
+#export GOPATH = ${PWD}
 export CGO_ENABLED = 0
 export GOBUILD_ARGS = -a -tags netgo -ldflags -w
-# export GOARCH ?= amd64
+export GOARCH ?= amd64
 # export GOOS ?= linux
 
 all: linux windows docker
