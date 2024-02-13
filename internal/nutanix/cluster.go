@@ -11,10 +11,13 @@ package nutanix
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
+
+const KEY_CLUSTER_PROPERTIES = "properties"
 
 // ClusterExporter
 type ClusterExporter struct {
@@ -33,12 +36,19 @@ func (e *ClusterExporter) Describe(ch chan<- *prometheus.Desc) {
 	stats := ent["stats"].(map[string]interface{})
 	usageStats := ent["usage_stats"].(map[string]interface{})
 
+	// Publish cluster properties as separate record
+	key := KEY_CLUSTER_PROPERTIES
+	e.metrics[key] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: e.namespace,
+		Name:      key, Help: "..."}, e.properties)
+	e.metrics[key].Describe(ch)
+
 	for key := range usageStats {
 		key = e.normalizeKey(key)
 
 		e.metrics[key] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: e.namespace,
-			Name:      key, Help: "..."}, []string{"name"})
+			Name:      key, Help: "..."}, []string{"uuid"})
 
 		e.metrics[key].Describe(ch)
 	}
@@ -47,7 +57,7 @@ func (e *ClusterExporter) Describe(ch chan<- *prometheus.Desc) {
 
 		e.metrics[key] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: e.namespace,
-			Name:      key, Help: "..."}, []string{"name"})
+			Name:      key, Help: "..."}, []string{"uuid"})
 
 		e.metrics[key].Describe(ch)
 	}
@@ -55,13 +65,12 @@ func (e *ClusterExporter) Describe(ch chan<- *prometheus.Desc) {
 	for _, key := range e.fields {
 		e.metrics[key] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: e.namespace,
-			Name:      key, Help: "..."}, []string{"cluster_name"})
+			Name:      key, Help: "..."}, []string{"uuid"})
 		e.metrics[key].Describe(ch)
 	}
-
 }
 
-// Collect - Implemente prometheus.Collector interface
+// Collect - Implement prometheus.Collector interface
 // See https://github.com/prometheus/client_golang/blob/master/prometheus/collector.go
 func (e *ClusterExporter) Collect(ch chan<- prometheus.Metric) {
 	// entities, _ := e.result.([]interface{})
@@ -70,12 +79,22 @@ func (e *ClusterExporter) Collect(ch chan<- prometheus.Metric) {
 	stats := ent["stats"].(map[string]interface{})
 	usageStats := ent["usage_stats"].(map[string]interface{})
 
+	key := KEY_CLUSTER_PROPERTIES
+	var property_values []string
+	for _, property := range e.properties {
+		val := fmt.Sprintf("%v", ent[property])
+		property_values = append(property_values, val)
+	}
+	g := e.metrics[key].WithLabelValues(property_values...)
+	g.Set(1)
+	g.Collect(ch)
+
 	for key, value := range usageStats {
 		key = e.normalizeKey(key)
 
 		v := e.valueToFloat64(value)
 
-		g := e.metrics[key].WithLabelValues(ent["name"].(string))
+		g := e.metrics[key].WithLabelValues(ent["uuid"].(string))
 		g.Set(v)
 		g.Collect(ch)
 	}
@@ -84,14 +103,14 @@ func (e *ClusterExporter) Collect(ch chan<- prometheus.Metric) {
 
 		v := e.valueToFloat64(value)
 
-		g := e.metrics[key].WithLabelValues(ent["name"].(string))
+		g := e.metrics[key].WithLabelValues(ent["uuid"].(string))
 		g.Set(v)
 		g.Collect(ch)
 	}
 
 	for _, key := range e.fields {
 		log.Debugf("%s > %s", key, ent[key])
-		g := e.metrics[key].WithLabelValues(ent["name"].(string))
+		g := e.metrics[key].WithLabelValues(ent["uuid"].(string))
 		g.Set(e.valueToFloat64(ent[key]))
 		g.Collect(ch)
 	}
@@ -103,10 +122,11 @@ func NewClusterCollector(_api *Nutanix) *ClusterExporter {
 
 	exporter := &ClusterExporter{
 		&nutanixExporter{
-			api:       *_api,
-			metrics:   make(map[string]*prometheus.GaugeVec),
-			namespace: "nutanix_cluster",
-			fields:    []string{"num_nodes"},
+			api:        *_api,
+			metrics:    make(map[string]*prometheus.GaugeVec),
+			namespace:  "nutanix_cluster",
+			fields:     []string{"num_nodes"},
+			properties: []string{"uuid", "name", "cluster_external_ipaddress", "version"},
 		}}
 
 	return exporter

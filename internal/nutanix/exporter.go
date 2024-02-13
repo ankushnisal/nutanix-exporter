@@ -17,11 +17,12 @@ import (
 )
 
 type nutanixExporter struct {
-	api       Nutanix
-	result    map[string]interface{}
-	metrics   map[string]*prometheus.GaugeVec
-	namespace string
-	fields    []string
+	api        Nutanix
+	result     map[string]interface{}
+	metrics    map[string]*prometheus.GaugeVec
+	namespace  string
+	fields     []string
+	properties []string
 }
 
 // ValueToFloat64 converts given value to Float64
