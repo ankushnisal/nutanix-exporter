@@ -7,6 +7,9 @@
 
 FROM golang:1.21 AS builder
 
+ARG VERSION
+
+ENV VERSION=$VERSION
 ENV GOPATH /go
 
 WORKDIR /nutanix-exporter
