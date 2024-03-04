@@ -1,6 +1,7 @@
 
 BIN_NAME = nutanix-exporter
 DOCKER_IMAGE_NAME ?= nutanix-exporter
+VERSION := $(shell cat VERSION)
 #export GOPATH = ${PWD}
 export CGO_ENABLED = 0
 export GOBUILD_ARGS = -a -tags netgo -ldflags -w
@@ -21,7 +22,7 @@ clean:
 
 docker:
 	@echo ">> Compile using docker container"
-	@docker build -t "$(DOCKER_IMAGE_NAME)" .
+	@docker build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE_NAME):latest .
 
 windows: prepare
 	$(eval export GOOS=windows)
